@@ -15,13 +15,9 @@ RUN yes | unminimize
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 # Set up user, disable pw, and add to sudo group
-RUN adduser --disabled-password \
-  --gecos '' ${USERNAME}
-
+RUN adduser --disabled-password --gecos '' ${USERNAME}
 RUN adduser ${USERNAME} sudo
-
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> \
-  /etc/sudoers
+RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
 
 # Install packages for projects
 RUN sudo apt-get install -y curl git bash-completion man-db firefox
@@ -35,14 +31,22 @@ RUN sudo apt-get install -y build-essential
 RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
 ENV PATH="/root/.cargo/bin:${PATH}"
 
-# wasm-pack
-RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+# wasm-pack (use the manual download method here)
+COPY wasm-pack-v0.12.1-x86_64-unknown-linux-musl.tar.gz /tmp/
+RUN tar -xzf /tmp/wasm-pack-v0.12.1-x86_64-unknown-linux-musl.tar.gz -C /usr/local/bin/
 
 # /usr/lib/node_modules is owned by root, so this creates a folder ${USERNAME} 
 # can use for npm install --global
 WORKDIR ${HOMEDIR}
 RUN mkdir ~/.npm-global
 RUN npm config set prefix '~/.npm-global'
+
+# Configure course-specific environment
+COPY . .
+WORKDIR ${HOMEDIR}
+
+RUN cd ${HOMEDIR} && npm install
+
 
 # Configure course-specific environment
 COPY . .
